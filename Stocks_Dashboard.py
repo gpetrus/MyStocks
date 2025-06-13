@@ -1,4 +1,6 @@
 # pip install streamlit
+import appdirs as ad
+ad.user_cache_dir = lambda *args: "/tmp"
 import sys
 import yfinance as yf
 import matplotlib.pyplot as plt
