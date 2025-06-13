@@ -199,7 +199,7 @@ def show_key_metrics(ticker_symbol):
 st.set_page_config(layout="wide")
 st.title("My Stocks Dashboard")
 
-ticker_input = st.text_input("Enter stock ticker symbols (comma-separated, e.g., AAPL, MSFT, GOOGL)", "AAPL, UNH, COST, PLTR, JPM, MS, AXP, VZ, GOOGL, AMZN, NVDA")
+ticker_input = st.text_input("Enter stock ticker symbols (comma-separated, e.g., AAPL, MSFT, GOOGL)", "AAPL, UNH, COST")
 tickers = [t.strip().upper() for t in ticker_input.split(",") if t.strip()]
 
 # Select years of history
