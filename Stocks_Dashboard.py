@@ -1,4 +1,5 @@
 # pip install streamlit
+# pip install yfinance scikit-learn
 import appdirs as ad
 ad.user_cache_dir = lambda *args: "/tmp"
 import sys
@@ -6,6 +7,9 @@ import yfinance as yf
 import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
+
+from sklearn.ensemble import IsolationForest
+import numpy as np
 
 def plot_dividend_history(ticker_symbol, years_back=10):
     stock = yf.Ticker(ticker_symbol)
@@ -195,6 +199,57 @@ def show_key_metrics(ticker_symbol):
     col1.metric("Current Price", f"${price}")
     col2.metric("Market Cap", market_cap_display)
 
+def detect_valuation_anomalies(ticker_symbol, years_back=5):
+    stock = yf.Ticker(ticker_symbol)
+    hist = stock.history(period=f"{years_back}y")
+    fin = stock.financials
+    info = stock.info
+
+    if hist.empty: # or not fin.any():
+        st.warning("Insufficient data for anomaly detection.")
+        return
+
+    # Build feature set
+    pe_ratio = info.get("trailingPE", np.nan)
+    ps_ratio = info.get("priceToSalesTrailing12Months", np.nan)
+    market_cap = info.get("marketCap", np.nan)
+    revenue = info.get("totalRevenue", np.nan)
+    net_income = info.get("netIncomeToCommon", np.nan)
+
+    features = np.array([[pe_ratio, ps_ratio, market_cap, revenue, net_income]])
+
+    # Use historical range to set realistic bounds (or train model on multiple stocks)
+    iso_model = IsolationForest(contamination=0.1, random_state=42)
+    # Fake historical data (ideally from a sector peer group or market)
+    dummy_data = features + np.random.normal(0, 0.1, (100, 5))
+    iso_model.fit(dummy_data)
+
+    anomaly_score = iso_model.decision_function(features)[0]
+    is_anomaly = iso_model.predict(features)[0] == -1
+
+    # Generate explanation
+    explanations = []
+
+    if pe_ratio and pe_ratio > np.nanmean(dummy_data[:, 0]) * 1.5:
+        explanations.append(f"Unusually high P/E ratio ({pe_ratio:.2f})")
+
+    if ps_ratio and ps_ratio > np.nanmean(dummy_data[:, 1]) * 1.5:
+        explanations.append(f"Elevated price-to-sales ratio ({ps_ratio:.2f})")
+
+    if revenue and net_income and net_income < 0:
+        explanations.append("Company is currently unprofitable despite positive revenue.")
+
+    if not explanations:
+        explanations.append("Valuation appears within normal range based on available metrics.")
+
+    status = "⚠️ Potential Over/Undervaluation Detected" if is_anomaly else "✅ Valuation looks typical"
+
+    # Output
+    st.subheader("Valuation Anomaly Analysis")
+    st.markdown(f"**{status}**")
+    for ex in explanations:
+        st.markdown(f"- {ex}")
+
 # Streamlit Dashboard
 st.set_page_config(layout="wide")
 st.title("My Stocks Dashboard")
@@ -210,7 +265,7 @@ st.markdown("### Select Charts to Display:")
 # Toggle to select all charts
 select_all = st.checkbox("Select All Charts", value=True)
 # First row of checkboxes
-col1, col2, col3, col4, col5, col6 = st.columns(6)
+col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
 with col1:
     show_dividends = st.checkbox("Dividend History", value=select_all, key="dividends_cb")
 with col2:
@@ -223,6 +278,8 @@ with col5:
     show_price_ma = st.checkbox("Price + MAs", value=select_all, key="price_ma_cb")
 with col6:
     show_vs_sp500 = st.checkbox("Price vs. S&P 500", value=select_all, key="sp500_cb")    
+with col7:
+    show_valuation_ml = st.checkbox("Valuation Anomaly (ML)", value=select_all, key="val_anomaly")    
 
 if st.button("Show Charts"):
     tabs = st.tabs(tickers)
@@ -244,7 +301,9 @@ if st.button("Show Charts"):
             if show_price_ma:
                 columns.append("price_ma")
             if show_price_ma:
-                columns.append("price_vs_sp500")                
+                columns.append("price_vs_sp500")  
+            if show_valuation_ml:
+                columns.append("valuation_ml")              
             
             # Make columns layout dynamic based on selection
             chart_cols = st.columns(len(columns)) if columns else []
@@ -269,4 +328,6 @@ if st.button("Show Charts"):
                     elif chart_type == "price_vs_sp500":
                         st.subheader("Price vs. S&P 500")
                         plot_price_vs_sp500(ticker, period="1y")
+                    elif chart_type == "valuation_ml":
+                        detect_valuation_anomalies(ticker)
 
