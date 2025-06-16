@@ -3,4 +3,3 @@ yfinance
 streamlit
 pandas
 matplotlib
-isolationforest
