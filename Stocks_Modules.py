@@ -5,6 +5,67 @@ import pandas as pd
 import streamlit as st
 from sklearn.ensemble import IsolationForest
 import numpy as np
+from datetime import datetime, timedelta, timezone
+
+def display_ticker_news(ticker: str, max_items: int = 5):
+    st.subheader("📰 Latest News")
+
+    try:
+        stock = yf.Ticker(ticker)
+        news_items = stock.news
+
+        if not news_items:
+            st.info("No news available for this ticker.")
+            return
+
+        # Limit to the latest N articles
+        for item in news_items[:max_items]:
+            title = item.get("title", "Untitled")
+            link = item.get("link", "#")
+            publisher = item.get("publisher", "Unknown")
+            st.markdown(
+                f"- **[{title}]({link})**  <sub><i>{publisher}</i></sub>",
+                unsafe_allow_html=True
+            )
+
+    except Exception as e:
+        st.warning(f"Failed to retrieve news for {ticker}.")
+        st.caption(f"Debug info: {e}")
+
+def display_upcoming_events(ticker):
+
+    try:
+        st.subheader("📅 Upcoming Events")
+        stock = yf.Ticker(ticker)
+
+        # Earnings Date from earnings_dates
+        df = stock.earnings_dates
+        df.index = df.index.tz_convert(None)
+        future = df[df.index >= pd.Timestamp.today()] if not df.empty else pd.DataFrame()
+
+        if not future.empty:
+            next_earn = future.index[0]
+            eps_est = future.iloc[0]["EPS Estimate"]
+            st.markdown(f"**Earnings Date:** 📢 {next_earn.strftime('%B %d, %Y')} (EPS est: {eps_est})")
+        else:
+            st.markdown("**Earnings Date:** Not available")
+
+        # Ex-dividend
+        actions = stock.actions
+        future_divs = actions[
+            (actions.index.tz_localize(None) > pd.Timestamp.today()) &
+            (actions['Dividends'] > 0)
+        ]
+        if not future_divs.empty:
+            next_ex_div = future_divs.index[0]
+            st.markdown(f"**Ex-Dividend Date:** 💰 {next_ex_div.strftime('%B %d, %Y')}")
+        else:
+            st.markdown("**Ex-Dividend Date:** Not available")
+
+    except Exception as e:
+        st.warning(f"Could not retrieve event data for {ticker}.")
+        st.caption(f"Debug info: {e}")
+
 
 def plot_dividend_history(ticker_symbol, years_back=10):
     stock = yf.Ticker(ticker_symbol)
