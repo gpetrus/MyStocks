@@ -6,6 +6,7 @@ ad.user_cache_dir = lambda *args: "/tmp"
 import Stocks_Modules
 from Stocks_Modules import *
 
+
 # Streamlit Dashboard
 st.set_page_config(layout="wide")
 st.title("My Stocks Dashboard")
@@ -21,7 +22,7 @@ st.markdown("### Select Charts to Display:")
 # Toggle to select all charts
 select_all = st.checkbox("Select All Charts", value=True)
 # First row of checkboxes
-col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
+col1, col2, col3, col4, col5, col6, col7, col8 = st.columns(8)
 with col1:
     show_dividends = st.checkbox("Dividend History", value=select_all, key="dividends_cb")
 with col2:
@@ -35,7 +36,9 @@ with col5:
 with col6:
     show_vs_sp500 = st.checkbox("Price vs. S&P 500", value=select_all, key="sp500_cb")    
 with col7:
-    show_valuation_ml = st.checkbox("Valuation Anomaly (ML)", value=select_all, key="val_anomaly")    
+    show_valuation_ml = st.checkbox("Valuation Anomaly (ML)", value=select_all, key="val_anomaly")  
+with col8:
+    show_events = st.checkbox("Upcoming Events", value=select_all, key="events")  
 
 if st.button("Show Charts"):
     tabs = st.tabs(tickers)
@@ -59,7 +62,10 @@ if st.button("Show Charts"):
             if show_price_ma:
                 columns.append("price_vs_sp500")  
             if show_valuation_ml:
-                columns.append("valuation_ml")              
+                columns.append("valuation_ml")   
+            if show_events:
+                columns.append("events")
+         
             
             # Make columns layout dynamic based on selection
             chart_cols = st.columns(len(columns)) if columns else []
@@ -86,3 +92,6 @@ if st.button("Show Charts"):
                         plot_price_vs_sp500(ticker, period="1y")
                     elif chart_type == "valuation_ml":
                         detect_valuation_anomalies(ticker)
+                    elif show_events:
+                        display_upcoming_events(ticker)
+            display_ticker_news(ticker)
