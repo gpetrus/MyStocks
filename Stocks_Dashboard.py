@@ -11,7 +11,7 @@ from Stocks_Modules import *
 st.set_page_config(layout="wide")
 st.title("My Stocks Dashboard")
 
-ticker_input = st.text_input("Enter stock ticker symbols (comma-separated, e.g., AAPL, MSFT, GOOGL)", "AAPL, UNH, COST")
+ticker_input = st.text_input("Enter stock ticker symbols (comma-separated, e.g., AAPL, MSFT, GOOGL)", "AAPL, UNH, COST, AXP, JPM, MS, PLTR, GOOGL, AMZN, WFC, VICI, VZ, BA, CVS, DIS ")
 tickers = [t.strip().upper() for t in ticker_input.split(",") if t.strip()]
 
 # Select years of history
